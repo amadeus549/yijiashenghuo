@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <title>逸家生活</title>
+  <!-- 引入样式 -->
+  <link rel="stylesheet" href="./css/element.css">
+
+  <link href="./css/provider-detail.css" rel="stylesheet">
+  <link href="./css/main.css" rel="stylesheet">
+
+  <style type="text/css">
+
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="header-back-btn" @click="goBack"><i class="el-icon-arrow-left"></i></div>
+    <div class="header-title"></div>
+    <div class="header-share">...</div>
+  </div>
+  <div class="top-bar"></div>
+  <div class="provider-info-box">
+    <div class="provider-title">{{provider.name}}</div>
+    <div class="provider-rate">
+      <el-rate
+          disabled v-model="provider.score/10"
+          text-color="#F63"
+          show-score
+      ></el-rate>
+      <span>{{provider.comments}}条</span>
+    </div>
+    <div class="provider-rate-info"> 服务:4.9  专业:4.8  准时:4.7 </div>
+    <div class="provider-rank">
+      <img src="/imgs/bd.png" width="63" height="20" alt="">
+      <span>{{provider.area}}好评榜第3名</span>
+      <div><i class="el-icon-arrow-right"></i></div>
+    </div>
+    <div class="provider-images">
+      <div v-for="(s,i) in provider.images" :key="i">
+        <img :src="s" alt="">
+      </div>
+    </div>
+    <div class="provider-address">
+      <div><i class="el-icon-map-location"></i></div>
+      <span>{{provider.address}}</span>
+      <div style="width: 10px; flex-grow: 2; text-align: center; color: #e1e2e3">|</div>
+      <div style="margin: 0 5px; color: #ff6633"><i class="el-icon-phone"></i></div>
+      <div style="color: #ff6633"><i class="el-icon-position"></i></div>
+    </div>
+  </div>
+  <div class="provider-divider"></div>
+  <div class="provider-open-time">
+    <span><i class="el-icon-watch"></i></span>
+    <div>服务时间</div>
+    <div>{{provider.openHours}}</div>
+    <span class="line-right">查看详情 <i class="el-icon-arrow-right"></i></span>
+  </div>
+  <div class="provider-divider"></div>
+  <div class="provider-deal">
+    <div>
+      <span class="deal-icon">券</span>
+      <span style="font-weight: bold;">代金券</span>
+    </div>
+    <div class="deal-box" v-for="v in deals" :key="v.id" v-if="!isEnd(v)">
+      <div class="deal-circle">
+        <div class="deal-b"></div>
+        <div class="deal-b"></div>
+        <div class="deal-b"></div>
+      </div>
+      <div class="deal-left">
+        <div class="deal-title">{{v.title}}</div>
+        <div class="deal-subtitle">{{v.subTitle}}</div>
+        <div class="deal-price"><div>￥ {{util.formatPrice(v.payValue)}}</div>  <span>{{(v.payValue*10)/v.actualValue}}折</span></div>
+      </div>
+      <div class="deal-right">
+        <div v-if="v.type" class="flash-box">
+          <div class="deal-btn" :class="{'disable-btn': isNotBegin(v) || v.stock < 1}" @click="flash(v)">限时抢购</div>
+          <div class="flash-stock">剩余 <span>{{v.stock}}</span> 张</div>
+          <div class="flash-time">{{formatTime(v)}}</div>
+        </div>
+        <div class="deal-btn" v-else>抢购</div>
+      </div>
+    </div>
+  </div>
+  <div class="provider-divider"></div>
+  <div class="provider-comments">
+    <div class="comments-head">
+      <div>服务评价 <span>（{{commentTotal}}）</span></div>
+      <div><i class="el-icon-arrow-right"></i></div>
+    </div>
+    <div class="comment-tags">
+      <div class="tag">准时上门(19)</div>
+      <div class="tag">手法专业(16)</div>
+      <div class="tag">服务细心(11)</div>
+      <div class="tag">回头客(4)</div>
+      <div class="tag">工具齐全(4)</div>
+      <div class="tag">收拾干净(3)</div>
+      <div class="tag">沟通顺畅(3)</div>
+      <div class="tag">态度好(3)</div>
+      <div class="tag">适合家庭(6)</div>
+    </div>
+    <div class="comment-list" v-if="comments.length">
+      <div class="comment-box" v-for="c in comments" :key="c.id">
+        <div class="comment-icon">
+          <img :src="c.icon || '/imgs/icons/icon1.jpg'" alt="">
+        </div>
+        <div class="comment-info">
+          <div class="comment-user">{{c.name}}</div>
+          <div class="comment-content">{{c.content}}</div>
+          <div class="comment-meta">
+            <span>{{formatCommentTime(c.createTime)}}</span>
+            <span class="comment-actions" @click="toNote(c.noteId)">查看笔记 <i class="el-icon-arrow-right"></i></span>
+          </div>
+        </div>
+      </div>
+      <div class="comment-more" v-if="commentTotal > comments.length" @click="loadMoreComments">
+        <div>查看全部 {{commentTotal}} 条评价</div>
+        <div><i class="el-icon-arrow-right"></i></div>
+      </div>
+    </div>
+    <div class="comment-empty" v-else>这个服务商还没有服务体验评价</div>
+  </div>
+  <div class="provider-divider"></div>
+  <div class="copyright">
+    copyright ©2026 yijia-life.com
+  </div>
+</div>
+<script src="./js/vue.js"></script>
+<script src="./js/axios.min.js"></script>
+<!-- 引入组件库 -->
+<script src="./js/element.js"></script>
+<script src="./js/common.js"></script>
+<script>
+
+  const app = new Vue({
+    el: "#app",
+    data: {
+      util,
+      provider: {},
+      deals: [],
+      comments: [],
+      commentTotal: 0,
+      commentPage: 1
+    },
+    created() {
+      // 获取参数
+      let providerId = util.getUrlParam("id");
+      // 查询酒店信息
+      this.queryProviderById(providerId);
+      // 查询特惠套餐信息
+      this.queryDeal(providerId);
+      // 查询该服务商名下的服务评价
+      this.queryComments(providerId, 1, false);
+    },
+    methods: {
+      goBack() {
+        history.back();
+      },
+      queryProviderById(providerId) {
+        axios.get("/provider/" + providerId)
+        .then(({data}) => {
+          data.images = data.images.split(",")
+          this.provider = data
+        })
+        .catch(this.$message.error)
+      },
+      queryDeal(providerId) {
+        axios.get("/deal/list/" + providerId)
+        .then(({data}) => {
+          this.deals = data;
+        })
+        .catch(this.$message.error)
+      },
+      queryComments(providerId, page, append) {
+        axios.get("/note-comments/of/provider/" + providerId, { params: { current: page || 1 } })
+          .then(res => {
+            this.commentTotal = res.total || 0;
+            this.comments = append ? this.comments.concat(res.data) : res.data;
+          })
+          .catch(this.$message.error)
+      },
+      loadMoreComments() {
+        this.commentPage += 1;
+        this.queryComments(this.provider.id, this.commentPage, true);
+      },
+      toNote(noteId) {
+        location.href = "/note-detail.html?id=" + noteId;
+      },
+      formatCommentTime(v) {
+        const b = new Date(v);
+        return b.getFullYear() + "年" + (b.getMonth() + 1) + "月" + b.getDate() + "日";
+      },
+      formatTime(v){
+        let b = new Date(v.beginTime);
+        let e = new Date(v.endTime);
+        return b.getMonth() + 1 + "月" + b.getDate() + "日 "
+          +  b.getHours() + ":" + this.formatMinutes(b.getMinutes())
+          + " ~ "/*  + e.getMonth() + 1 + "月" + e.getDate() + "日 " */
+          +  e.getHours() + ":" + this.formatMinutes(e.getMinutes());
+      },
+      formatMinutes(m){
+        if(m < 10) m = "0" + m
+        return m;
+      },
+      isNotBegin(v){
+        return new Date(v.beginTime).getTime() > new Date().getTime();
+      },
+      isEnd(v){
+        return new Date(v.endTime).getTime() < new Date().getTime();
+      },
+      flash(v){
+        if(!token){
+          this.$message.error("请先登录")
+          // 未登录，跳转
+          setTimeout(() => {
+            location.href = "/login.html"
+          }, 200);
+          return;
+        }
+        if(this.isNotBegin(v)){
+          this.$message.error("特惠套餐抢购尚未开始！")
+          return;
+        }
+        if(this.isEnd(v)){
+          this.$message.error("特惠套餐抢购已经结束！")
+          return;
+        }
+        if(v.stock < 1){
+          this.$message.error("库存不足，请刷新再试试！")
+          return;
+        }
+        let id = v.id;
+        // 抢购抢购
+        axios.post("/deal-order/flash/" + id)
+        .then(({data}) => {
+          // 下单是异步写库的，给消费线程一点时间再跳订单页
+          this.$message.success("抢购成功，正在跳转订单页…")
+          setTimeout(() => {
+            location.href = "/order.html"
+          }, 800)
+        })
+        .catch(this.$message.error)
+      }
+    }
+  })
+</script>
+</body>
+</html>

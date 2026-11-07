@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <title>逸家生活</title>
+  <!-- 引入样式 -->
+  <link rel="stylesheet" href="./css/element.css">
+
+  <link href="./css/provider-list.css" rel="stylesheet">
+  <link href="./css/main.css" rel="stylesheet">
+
+  <style type="text/css">
+
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="header-back-btn" @click="goBack"><i class="el-icon-arrow-left"></i></div>
+    <div class="header-title">{{typeName}}</div>
+    <div class="header-search">
+      <i class="el-icon-search"></i>
+    </div>
+  </div>
+  <div class="sort-bar">
+    <div class="sort-item">
+      <el-dropdown trigger="click" @command="handleCommand">
+      <span class="el-dropdown-link">
+        {{typeName}}<i class="el-icon-arrow-down el-icon--right"></i>
+      </span>
+        <el-dropdown-menu slot="dropdown">
+          <el-dropdown-item v-for="t in types" :key="t.id" :command="t">
+            {{t.name}}
+          </el-dropdown-item>
+        </el-dropdown-menu>
+      </el-dropdown>
+    </div>
+    <div class="sort-item" @click="sortAndQuery('')">
+      距离 <i class="el-icon-arrow-down el-icon--right"></i>
+    </div>
+    <div class="sort-item" @click="sortAndQuery('comments')">
+      人气 <i class="el-icon-arrow-down el-icon--right"></i>
+    </div>
+    <div class="sort-item" @click="sortAndQuery('score')">
+      评分 <i class="el-icon-arrow-down el-icon--right"></i>
+    </div>
+  </div>
+  <div class="provider-list" @scroll="onScroll">
+    <div class="provider-box" v-for="s in providers" :key="s.id" @click="toDetail(s.id)">
+      <div class="provider-img"><img :src="s.images" alt=""></div>
+      <div class="provider-info">
+        <div class="provider-title provider-item">{{s.name}}</div>
+        <div class="provider-rate provider-item" >
+          <el-rate
+              disabled v-model="s.score/10"
+              text-color="#F63"
+              show-score
+          ></el-rate>
+          <span>{{s.comments}}条</span>
+        </div>
+        <div class="provider-area provider-item">
+          <span>{{s.area}}</span>
+          <span v-if="s.distance">{{s.distance < 1000 ? s.distance.toFixed(1) + 'm' : (s.distance/1000).toFixed(1) + 'km'}}</span>
+        </div>
+        <div class="provider-avg provider-item">￥{{s.avgPrice}}/人</div>
+        <div class="provider-address provider-item">
+          <i class="el-icon-map-location"></i>
+          <span>{{s.address}}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="./js/vue.js"></script>
+<script src="./js/axios.min.js"></script>
+<!-- 引入组件库 -->
+<script src="./js/element.js"></script>
+<script src="./js/common.js"></script>
+<script>
+
+  const app = new Vue({
+    el: "#app",
+    data: {
+      util,
+      isReachBottom: false,
+      types: [], // 类型列表
+      providers: [], // 商店列表
+      typeName: "",
+      params:{
+        typeId: 0,
+        current: 1,
+        sortBy: "",
+        x: 121.473701, // 经度（上海人民广场）
+        y: 31.230416 // 纬度（上海人民广场）
+      }
+    },
+    created() {
+      // 获取参数
+      this.params.typeId = util.getUrlParam("type");
+      this.typeName = util.getUrlParam("name");
+      // 查询类型
+      this.queryTypes();
+      // 查询商店
+      this.queryProviders();
+    },
+    methods: {
+      queryTypes() {
+        axios.get("/service-type/list")
+          .then(({data}) => {
+            this.types = data;
+          })
+          .catch(err => {
+            console.log(err);
+            this.$message.error(err)
+          })
+      },
+      queryProviders() {
+        axios.get("/provider/of/type", {
+            params: this.params
+          })
+          .then(({data}) => {
+            if (!data) {
+              return
+            }
+            data.forEach(s => s.images = s.images.split(',')[0]);
+            this.providers = this.providers.concat(data);
+          })
+          .catch(err => {
+            console.log(err);
+            this.$message.error(err)
+          })
+      },
+      handleCommand(t) {
+        location.href = "/provider-list.html?type="+t.id+"&name="+t.name;
+      },
+      sortAndQuery(sortBy) {
+        this.params.sortBy = sortBy;
+        this.queryProviders();
+      },
+      goBack() {
+        history.back();
+      },
+      toDetail(id) {
+        location.href = "/provider-detail.html?id="+id
+      },
+      onScroll(e) {
+        let scrollTop = e.target.scrollTop;
+        let offsetHeight = e.target.offsetHeight;
+        let scrollHeight = e.target.scrollHeight;
+        if(scrollTop + offsetHeight + 1 > scrollHeight && !this.isReachBottom){
+          this.isReachBottom = true
+          console.log("触底")
+          this.params.current++
+          this.queryProviders(this.params.current, 5);
+        }else{
+          this.isReachBottom = false
+        }
+      },
+    }
+  })
+</script>
+</body>
+</html>
